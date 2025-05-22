@@ -12,6 +12,70 @@ Get-Command -Module SysAdminTools | ForEach-Object {
     Write-Host "  - $($_.Name)" -ForegroundColor White
 }
 
+Write-Host "`n=== COPY-DBADATABASE EXAMPLES ===" -ForegroundColor Magenta
+Write-Host "Advanced Database Copy with Extensive Options" -ForegroundColor Magenta
+
+Write-Host "`nA. Basic Complete Database Copy" -ForegroundColor Yellow
+Write-Host "-------------------------------" -ForegroundColor Yellow
+$dbExample1 = @'
+# Copy entire database with all default options
+Copy-DbaDatabase -SourceInstance "SQLPROD01" -DestinationInstance "SQLDEV01" -SourceDatabase "ProductionDB" -DestinationDatabase "DevDB"
+'@
+Write-Host $dbExample1 -ForegroundColor Gray
+
+Write-Host "`nB. Structure-Only Copy (No Data)" -ForegroundColor Yellow
+Write-Host "--------------------------------" -ForegroundColor Yellow
+$dbExample2 = @'
+# Copy database structure without table data
+Copy-DbaDatabase -SourceInstance "SQLPROD01" -DestinationInstance "SQLDEV01" -SourceDatabase "ProductionDB" -DestinationDatabase "DevStructure" -IncludeTableData:$false
+'@
+Write-Host $dbExample2 -ForegroundColor Gray
+
+Write-Host "`nC. Selective Copy with Exclusions" -ForegroundColor Yellow
+Write-Host "---------------------------------" -ForegroundColor Yellow
+$dbExample3 = @'
+# Copy database excluding specific users, schemas, and permissions
+Copy-DbaDatabase -SourceInstance "SQLPROD01" -DestinationInstance "SQLDEV01" `
+    -SourceDatabase "ProductionDB" -DestinationDatabase "DevDB" `
+    -IncludeUserPermissions:$false `
+    -ExcludeUsers @('sa', 'produser', 'serviceaccount') `
+    -ExcludeSchemas @('temp', 'staging', 'archive')
+'@
+Write-Host $dbExample3 -ForegroundColor Gray
+
+Write-Host "`nD. Backup/Restore Method with Logging" -ForegroundColor Yellow
+Write-Host "-------------------------------------" -ForegroundColor Yellow
+$dbExample4 = @'
+# Use backup/restore method with comprehensive logging
+$result = Copy-DbaDatabase -SourceInstance "SQLPROD01" -DestinationInstance "SQLDEV01" `
+    -SourceDatabase "ProductionDB" -DestinationDatabase "DevDB" `
+    -Method BackupRestore -BackupPath "C:\Temp\Backups" `
+    -ForceOverwrite -LogPath "C:\Logs" -Verify:$true
+
+Write-Host "Copy completed in: $($result.Duration)" -ForegroundColor Green
+Write-Host "Verification: Tables=$($result.VerificationResults.DestinationTableCount)" -ForegroundColor Cyan
+'@
+Write-Host $dbExample4 -ForegroundColor Gray
+
+Write-Host "`nE. Production to Development Scenario" -ForegroundColor Yellow
+Write-Host "------------------------------------" -ForegroundColor Yellow
+$dbExample5 = @'
+# Real-world production to development copy
+Copy-DbaDatabase -SourceInstance "SQLPROD01" -DestinationInstance "SQLDEV01" `
+    -SourceDatabase "CriticalApp" -DestinationDatabase "DevApp" `
+    -IncludeTableData:$true `
+    -IncludeUserPermissions:$false `
+    -IncludeSystemObjects:$false `
+    -ExcludeUsers @('produser1', 'produser2') `
+    -ExcludeSchemas @('audit', 'logging') `
+    -ForceOverwrite -BatchSize 50000 `
+    -LogPath "C:\DatabaseMigrationLogs" -Verify:$true
+'@
+Write-Host $dbExample5 -ForegroundColor Gray
+
+Write-Host "`n=== TABLE-SPECIFIC COPY EXAMPLES ===" -ForegroundColor Magenta
+Write-Host "Fine-Grained Table Operations" -ForegroundColor Magenta
+
 Write-Host "`n1. Basic Table Copy" -ForegroundColor Yellow
 Write-Host "-------------------" -ForegroundColor Yellow
 $example1 = @'
@@ -107,6 +171,7 @@ Write-Host $example6 -ForegroundColor Gray
 
 Write-Host "`nGet Detailed Help:" -ForegroundColor Cyan
 Write-Host "------------------" -ForegroundColor Cyan
+Write-Host "Get-Help Copy-DbaDatabase -Full" -ForegroundColor Gray
 Write-Host "Get-Help Copy-DbaUserTables -Full" -ForegroundColor Gray
 Write-Host "Get-Help Test-TableDataIntegrity -Examples" -ForegroundColor Gray
 Write-Host "Get-Help Get-CopyProgress -Detailed" -ForegroundColor Gray

@@ -45,6 +45,75 @@ Import-Module SysAdminTools
 
 ## Functions
 
+### Copy-DbaDatabase
+
+**🆕 NEW**: Comprehensive database copy function with extensive customization options.
+
+Copy a complete database from one SQL Server instance to another with granular control over what gets copied. This function provides advanced options for production database migrations, development environment setup, and selective database copying.
+
+**Key Features:**
+- **Multiple Copy Methods**: Transfer (direct), BackupRestore, BackupRestoreWithOptions
+- **Selective Copying**: Choose exactly what to include/exclude
+- **User & Permission Management**: Include/exclude users and their permissions
+- **Schema-Level Control**: Exclude specific schemas and their objects
+- **Comprehensive Options**: Control tables, views, procedures, functions, triggers, constraints, indexes
+- **Advanced Logging**: Detailed operation logs with timestamps
+- **Built-in Verification**: Automatic post-copy validation
+- **Force Overwrite**: Safe database replacement with confirmation
+
+**Examples:**
+
+```powershell
+# Basic complete database copy
+Copy-DbaDatabase -SourceInstance "SQLPROD01" -DestinationInstance "SQLDEV01" -SourceDatabase "ProductionDB" -DestinationDatabase "DevDB"
+
+# Structure-only copy (no data)
+Copy-DbaDatabase -SourceInstance "SQLPROD01" -DestinationInstance "SQLDEV01" -SourceDatabase "ProductionDB" -DestinationDatabase "DevStructure" -IncludeTableData:$false
+
+# Production to development with exclusions
+Copy-DbaDatabase -SourceInstance "SQLPROD01" -DestinationInstance "SQLDEV01" `
+    -SourceDatabase "ProductionDB" -DestinationDatabase "DevDB" `
+    -IncludeUserPermissions:$false `
+    -ExcludeUsers @('sa', 'produser', 'serviceaccount') `
+    -ExcludeSchemas @('temp', 'staging', 'archive')
+
+# Backup/restore method with comprehensive logging
+$result = Copy-DbaDatabase -SourceInstance "SQLPROD01" -DestinationInstance "SQLDEV01" `
+    -SourceDatabase "ProductionDB" -DestinationDatabase "DevDB" `
+    -Method BackupRestore -BackupPath "C:\Temp\Backups" `
+    -ForceOverwrite -LogPath "C:\Logs" -Verify:$true
+
+Write-Host "Copy completed in: $($result.Duration)"
+Write-Host "Tables copied: $($result.VerificationResults.DestinationTableCount)"
+
+# Advanced scenario: Copy specific object types only
+Copy-DbaDatabase -SourceInstance "SQLPROD01" -DestinationInstance "SQLDEV01" `
+    -SourceDatabase "ProductionDB" -DestinationDatabase "DevDB" `
+    -IncludeTableData:$false -IncludeViews:$false -IncludeTriggers:$false `
+    -IncludeUsers:$false -IncludeUserPermissions:$false `
+    -IncludeStoredProcedures:$true -IncludeFunctions:$true
+```
+
+**Parameters:**
+- `IncludeTableData`: Include table data (default: true)
+- `IncludeSystemObjects`: Include system objects (default: false)
+- `IncludeUsers`: Include database users (default: true)
+- `IncludeUserPermissions`: Include user permissions (default: true)
+- `IncludeStoredProcedures`: Include stored procedures (default: true)
+- `IncludeFunctions`: Include functions (default: true)
+- `IncludeViews`: Include views (default: true)
+- `IncludeTriggers`: Include triggers (default: true)
+- `IncludeConstraints`: Include constraints (default: true)
+- `IncludeIndexes`: Include indexes (default: true)
+- `ExcludeUsers`: Array of users to exclude
+- `ExcludeSchemas`: Array of schemas to exclude
+- `ExcludeTables`: Array of tables to exclude
+- `Method`: Copy method (Transfer, BackupRestore, BackupRestoreWithOptions)
+- `BackupPath`: Path for backup files (required for backup methods)
+- `ForceOverwrite`: Replace existing destination database
+- `LogPath`: Path for detailed log files
+- `Verify`: Perform post-copy verification (default: true)
+
 ### Copy-DbaUserTables
 
 Copy schema and data for all user tables from one SQL Server database to another.
