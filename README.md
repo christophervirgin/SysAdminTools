@@ -5,21 +5,25 @@ A comprehensive PowerShell module containing system administration tools and uti
 ## Features
 
 - **Database Management**: Tools for SQL Server database operations including table copying, data migration, and integrity checking
+- **Database Deployment**: Automated SQL script deployment from zip files with backup and rollback capabilities
 - **dbatools Integration**: Leverages the powerful dbatools module for database operations
 - **Comprehensive Logging**: Detailed logging with color-coded output for easy monitoring
 - **Force Overwrite**: Safely handle existing table conflicts during migrations
 - **Data Integrity Validation**: Built-in tools to verify data integrity after operations
+- **Deployment Safety**: Automated backups, rollback capabilities, and validation modes
 
 ## Installation
 
 ### Prerequisites
 
 - PowerShell 5.1 or later (PowerShell Core 6+ supported)
-- [dbatools module](https://dbatools.io/)
+- [dbatools module](https://dbatools.io/) - for database operations
+- [SqlServer module](https://docs.microsoft.com/en-us/sql/powershell/sql-server-powershell) - for deployment operations
 
 ```powershell
-# Install dbatools if not already installed
+# Install required modules if not already installed
 Install-Module -Name dbatools -Scope CurrentUser
+Install-Module -Name SqlServer -Scope CurrentUser
 ```
 
 ### Installing SysAdminTools
@@ -44,6 +48,106 @@ Import-Module SysAdminTools
 ```
 
 ## Functions
+
+### Invoke-DatabaseDeployment
+
+**🚀 NEW**: Automated database deployment from zip files containing SQL scripts with comprehensive backup and rollback capabilities.
+
+Deploy database changes safely from zip files containing SQL scripts. This function ensures scripts are executed in natural sort order, creates automatic backups, and provides rollback capabilities for safe production deployments.
+
+**Key Features:**
+- **Zip File Processing**: Extracts and processes SQL scripts from deployment packages
+- **Natural Sort Execution**: Scripts executed in filename sort order (001_, 002_, etc.)
+- **Automatic Backups**: Creates compressed database backups before deployment
+- **Rollback Capability**: Instant rollback to pre-deployment state on failure
+- **Interactive Rollback**: User confirmation for rollback decisions
+- **Validation Mode**: WhatIf support to validate deployments without execution
+- **Comprehensive Logging**: Detailed logs with timestamps and deployment tracking
+- **Script Generation**: Optional rollback script creation for future use
+- **Deployment Tracking**: Unique deployment IDs for audit trails
+
+**Examples:**
+
+```powershell
+# Basic deployment with backup and rollback capability
+$result = Invoke-DatabaseDeployment `
+    -ZipFilePath "C:\Deploy\Release_v1.2.3.zip" `
+    -ServerInstance "SQLPROD01" `
+    -DatabaseName "ProductionDB" `
+    -BackupPath "C:\DatabaseBackups" `
+    -CreateRollbackScript
+
+Write-Host "Deployment ID: $($result.DeploymentId)"
+Write-Host "Scripts executed: $($result.ExecutedScripts)"
+
+# Validation mode (test without executing)
+Invoke-DatabaseDeployment `
+    -ZipFilePath "C:\Deploy\Release_v1.2.4.zip" `
+    -ServerInstance "SQLTEST01" `
+    -DatabaseName "TestDB" `
+    -BackupPath "C:\TestBackups" `
+    -WhatIf
+
+# Custom configuration for large deployments
+Invoke-DatabaseDeployment `
+    -ZipFilePath "C:\Deploy\LargeUpdate.zip" `
+    -ServerInstance "SQLPROD01" `
+    -DatabaseName "ProductionDB" `
+    -BackupPath "D:\Backups\Production" `
+    -TempPath "D:\Temp\Deployment" `
+    -ExecutionTimeout 900 `
+    -CreateRollbackScript
+
+# CI/CD Pipeline Integration
+function Deploy-ToEnvironment {
+    param($Environment, $Version, $ZipPath)
+    
+    $config = Get-EnvironmentConfig $Environment
+    
+    # Validate first
+    Invoke-DatabaseDeployment -ZipFilePath $ZipPath @config -WhatIf
+    
+    # Deploy if validation passes
+    if ($Environment -eq "PROD") {
+        $confirm = Read-Host "Deploy to PRODUCTION? (Type 'DEPLOY')"
+        if ($confirm -ne "DEPLOY") { return }
+    }
+    
+    Invoke-DatabaseDeployment -ZipFilePath $ZipPath @config -CreateRollbackScript
+}
+```
+
+**Parameters:**
+- `ZipFilePath`: Path to zip file containing SQL scripts (required)
+- `ServerInstance`: SQL Server instance name (required)
+- `DatabaseName`: Target database name (required)
+- `BackupPath`: Directory for database backups (required)
+- `TempPath`: Temporary directory for script extraction (optional)
+- `ExecutionTimeout`: SQL command timeout in seconds (default: 300)
+- `CreateRollbackScript`: Generate rollback script for future use
+- `WhatIf`: Validation mode - shows what would be executed without running
+
+**Script Naming Convention:**
+The function executes scripts in natural sort order based on filename. Recommended naming:
+- `001_CreateTables.sql`
+- `002_AddIndexes.sql`
+- `003_InsertData.sql`
+- `004_UpdateSchema.sql`
+
+**Deployment Process:**
+1. **Validation**: Tests database connectivity and validates zip contents
+2. **Backup**: Creates compressed backup with verification
+3. **Extraction**: Extracts scripts to temporary directory
+4. **Execution**: Runs scripts in filename sort order
+5. **Rollback**: Offers automatic rollback on failure
+6. **Cleanup**: Removes temporary files and logs completion
+
+**Error Handling:**
+- Interactive rollback prompts on script failure
+- Detailed error logging with script-level granularity
+- Partial deployment tracking (shows which scripts succeeded)
+- Automatic backup verification before deployment
+- Safe cleanup of temporary resources
 
 ### Copy-DbaDatabase
 

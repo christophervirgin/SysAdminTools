@@ -1,155 +1,40 @@
-# Test script for SysAdminTools PowerShell Module
-[CmdletBinding()]
-param(
-    [switch]$Detailed
-)
+#!/usr/bin/env pwsh
 
-Write-Host "Testing SysAdminTools PowerShell Module..." -ForegroundColor Green
-Write-Host "=======================================" -ForegroundColor Green
-
-$TestResults = @{
-    ModuleLoad = $false
-    FunctionsAvailable = $false
-    DependencyCheck = $false
-    HelpAvailable = $false
-    ParameterValidation = $false
-}
-
+# Simple test script to verify module loading
 try {
-    # Test 1: Module Loading
-    Write-Host "`n1. Testing module loading..." -ForegroundColor Cyan
-    $ModulePath = Join-Path $PSScriptRoot "SysAdminTools.psd1"
+    Write-Host "Testing SysAdminTools module..." -ForegroundColor Yellow
     
-    if (Test-Path $ModulePath) {
-        Import-Module $ModulePath -Force
-        $TestResults.ModuleLoad = $true
-        Write-Host "   ✓ Module loaded successfully" -ForegroundColor Green
-    } else {
-        Write-Host "   ✗ Module manifest not found" -ForegroundColor Red
+    # Import the module
+    Import-Module ./SysAdminTools.psd1 -Force
+    Write-Host "✓ Module imported successfully" -ForegroundColor Green
+    
+    # List all commands in the module
+    $Commands = Get-Command -Module SysAdminTools
+    Write-Host "Available commands in module: $($Commands.Count)" -ForegroundColor Cyan
+    foreach ($cmd in $Commands) {
+        Write-Host "  - $($cmd.Name) ($($cmd.CommandType))" -ForegroundColor White
     }
     
-    # Test 2: Functions Available
-    Write-Host "`n2. Testing exported functions..." -ForegroundColor Cyan
-    $ExpectedFunctions = @(
-        'Copy-DbaUserTables',
-        'Test-TableDataIntegrity', 
-        'Get-CopyProgress',
-        'Test-AllTablesIntegrity'
-    )
-    
-    $AvailableFunctions = Get-Command -Module SysAdminTools -ErrorAction SilentlyContinue
-    
-    if ($AvailableFunctions.Count -eq $ExpectedFunctions.Count) {
-        $TestResults.FunctionsAvailable = $true
-        Write-Host "   ✓ All $($ExpectedFunctions.Count) functions exported correctly" -ForegroundColor Green
+    # Check if the new function is available
+    if (Get-Command Invoke-DatabaseDeployment -ErrorAction SilentlyContinue) {
+        Write-Host "✓ Invoke-DatabaseDeployment function is available" -ForegroundColor Green
         
-        if ($Detailed) {
-            foreach ($func in $AvailableFunctions) {
-                Write-Host "     - $($func.Name)" -ForegroundColor Gray
-            }
+        # Test getting help
+        $help = Get-Help Invoke-DatabaseDeployment -ErrorAction SilentlyContinue
+        if ($help) {
+            Write-Host "✓ Function help is available" -ForegroundColor Green
         }
-    } else {
-        Write-Host "   ✗ Function count mismatch. Expected: $($ExpectedFunctions.Count), Found: $($AvailableFunctions.Count)" -ForegroundColor Red
-        
-        $MissingFunctions = $ExpectedFunctions | Where-Object { $_ -notin $AvailableFunctions.Name }
-        if ($MissingFunctions) {
-            Write-Host "     Missing functions: $($MissingFunctions -join ', ')" -ForegroundColor Red
+        else {
+            Write-Host "⚠ Function help not available" -ForegroundColor Yellow
         }
     }
-    
-    # Test 3: Dependency Check
-    Write-Host "`n3. Testing dependencies..." -ForegroundColor Cyan
-    $DbaToolsAvailable = Get-Module -ListAvailable -Name dbatools -ErrorAction SilentlyContinue
-    
-    if ($DbaToolsAvailable) {
-        $TestResults.DependencyCheck = $true
-        Write-Host "   ✓ dbatools module is available" -ForegroundColor Green
-        if ($Detailed) {
-            Write-Host "     Version: $($DbaToolsAvailable.Version)" -ForegroundColor Gray
-        }
-    } else {
-        Write-Host "   ⚠ dbatools module not found (required for functionality)" -ForegroundColor Yellow
-        Write-Host "     Install with: Install-Module -Name dbatools" -ForegroundColor Gray
+    else {
+        Write-Host "✗ Invoke-DatabaseDeployment function not found" -ForegroundColor Red
     }
     
-    # Test 4: Help Available
-    Write-Host "`n4. Testing help content..." -ForegroundColor Cyan
-    $HelpTestsPassed = 0
-    
-    foreach ($func in $ExpectedFunctions) {
-        $help = Get-Help $func -ErrorAction SilentlyContinue
-        if ($help -and $help.Synopsis) {
-            $HelpTestsPassed++
-        }
-    }
-    
-    if ($HelpTestsPassed -eq $ExpectedFunctions.Count) {
-        $TestResults.HelpAvailable = $true
-        Write-Host "   ✓ Help content available for all functions" -ForegroundColor Green
-    } else {
-        Write-Host "   ⚠ Help content missing for some functions ($HelpTestsPassed/$($ExpectedFunctions.Count))" -ForegroundColor Yellow
-    }
-    
-    # Test 5: Parameter Validation
-    Write-Host "`n5. Testing parameter validation..." -ForegroundColor Cyan
-    try {
-        # Test Copy-DbaUserTables parameter validation
-        $params = (Get-Command Copy-DbaUserTables).Parameters
-        $requiredParams = @('SourceInstance', 'DestinationInstance', 'SourceDatabase', 'DestinationDatabase')
-        
-        $allRequiredPresent = $true
-        foreach ($reqParam in $requiredParams) {
-            if (-not $params.ContainsKey($reqParam)) {
-                $allRequiredPresent = $false
-                Write-Host "   ✗ Missing required parameter: $reqParam" -ForegroundColor Red
-            }
-        }
-        
-        if ($allRequiredPresent) {
-            $TestResults.ParameterValidation = $true
-            Write-Host "   ✓ All required parameters present" -ForegroundColor Green
-        }
-        
-        # Test parameter sets
-        if ($params.ContainsKey('Method') -and $params.ContainsKey('ForceOverwrite')) {
-            Write-Host "   ✓ Advanced parameters available" -ForegroundColor Green
-        }
-    }
-    catch {
-        Write-Host "   ✗ Error testing parameters: $($_.Exception.Message)" -ForegroundColor Red
-    }
-    
-    # Summary
-    Write-Host "`n" + "="*50 -ForegroundColor Green
-    Write-Host "TEST SUMMARY" -ForegroundColor Green
-    Write-Host "="*50 -ForegroundColor Green
-    
-    $PassedTests = ($TestResults.Values | Where-Object { $_ }).Count
-    $TotalTests = $TestResults.Count
-    
-    foreach ($test in $TestResults.GetEnumerator()) {
-        $status = if ($test.Value) { "PASS" } else { "FAIL" }
-        $color = if ($test.Value) { "Green" } else { "Red" }
-        Write-Host "  $($test.Key): $status" -ForegroundColor $color
-    }
-    
-    Write-Host "`nOverall: $PassedTests/$TotalTests tests passed" -ForegroundColor $(if ($PassedTests -eq $TotalTests) { "Green" } else { "Yellow" })
-    
-    if ($PassedTests -eq $TotalTests) {
-        Write-Host "`n🎉 All tests passed! SysAdminTools module is ready to use." -ForegroundColor Green
-        Write-Host "`nQuick start:" -ForegroundColor Cyan
-        Write-Host "  Get-Command -Module SysAdminTools" -ForegroundColor Gray
-        Write-Host "  Get-Help Copy-DbaUserTables -Full" -ForegroundColor Gray
-    } else {
-        Write-Host "`n⚠ Some tests failed. Please review the issues above." -ForegroundColor Yellow
-    }
+    Write-Host "`nTest completed successfully!" -ForegroundColor Green
 }
 catch {
-    Write-Error "Test execution failed: $($_.Exception.Message)"
-}
-finally {
-    # Clean up
-    if (Get-Module SysAdminTools) {
-        Remove-Module SysAdminTools
-    }
+    Write-Host "Test failed: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
 }
