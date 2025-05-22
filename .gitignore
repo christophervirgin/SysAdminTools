@@ -1,0 +1,91 @@
+# PowerShell specific
+*.ps1xml
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# MacOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# Backup files
+*.bak
+*.tmp
+*~
+
+# PowerShell Gallery
+*.nupkg
+
+# IDE specific files
+.vscode/
+*.code-workspace
+.vs/
+
+# Test results
+TestResults/
+*.trx
+
+# Configuration files that might contain sensitive information
+config.json
+appsettings*.json
+*.config
+
+# Temporary PowerShell files
+*.ps1.bak
+*.psm1.bak
+*.psd1.bak
+
+# Build artifacts
+bin/
+obj/
+packages/
+
+# Node modules (if using any JS tooling)
+node_modules/
+
+# Python (if using any Python tooling)
+__pycache__/
+*.py[cod]
+*$py.class
